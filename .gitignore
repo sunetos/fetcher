@@ -1,1 +1,8 @@
-*.pyc
+._*
+*DS_Store
+*pyc
+*.swo
+*.swp
+.session-lock
+.idea/
+cache/
