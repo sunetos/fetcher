@@ -1,0 +1,30 @@
+# You should only need to edit these first 3 sections.
+putio:
+  api_key: username
+  api_secret: secret
+  user: email
+  password: password
+
+watch:
+  putio:  # List folders in put.io to watch for new videos.
+  - To Download
+
+download:
+  local: ~/Movies/TV Shows
+  putio: Downloaded  # Which put.io folder to move completed downloads into.
+
+match:
+  word: '[-_.a-zA-z0-9]'
+  type: 'avi|mov|mkv|mp4'
+
+io:
+  max: 2
+  retry:
+    count: 3
+    delay: 5
+  chunk: 65536
+  fsync: 5  # Call fsync every 5 seconds
+
+poll: 300  # Check for new downloads every 5 minutes
+loglevel: INFO
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_4) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4

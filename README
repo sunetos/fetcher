@@ -1,0 +1,6 @@
+Fetcher polls your put.io account and automatically downloads new videos.
+
+If the video is part of a tv show, it will be automatically organized into
+folders by show and season.
+
+To get started, copy cfg.base.yml to cfg.yml and fill in your settings.
