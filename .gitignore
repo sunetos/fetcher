@@ -5,4 +5,4 @@
 *.swp
 .session-lock
 .idea/
-cache/
+cfg.yml
