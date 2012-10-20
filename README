@@ -1,6 +1,22 @@
+DESCRIPTION
+
 Fetcher polls your put.io account and automatically downloads new videos.
 
 If the video is part of a tv show, it will be automatically organized into
 folders by show and season.
 
 To get started, copy cfg.base.yml to cfg.yml and fill in your settings.
+
+INSTALLATION
+
+Make sure your python environment has virtualenv and virtualenvwrapper:
+  sudo easy_install virtualenv virtualenvwrapper
+
+Check the docs for virtualenvwrapper for installation:
+  http://virtualenvwrapper.readthedocs.org/en/latest/
+
+Next create a virtualenv for fetcher:
+  mkvirtualenv --python=python2.7 fetcher
+
+Finally install the dependencies:
+  pip install -r requirements.txt

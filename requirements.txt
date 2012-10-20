@@ -1,0 +1,6 @@
+Cython==0.17.1
+PyYAML==3.10
+greenlet==0.4.0
+requests==0.14.1
+wsgiref==0.1.2
+git+git://github.com/SiteSupport/gevent.git@1.0b4#egg=gevent
