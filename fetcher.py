@@ -113,7 +113,7 @@ def fetch_to_file(url, path, size=None, download=None):
 
     with open(path, 'ab') as dl_file:
       def progress():
-        cursize = dl_file.tell()
+        cursize = os.path.getsize(path) if dl_file.closed else dl_file.tell()
         (download and events.progress)(download, cursize, size)
 
       with interval_block(progress, 0.25):

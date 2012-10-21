@@ -1,5 +1,18 @@
 #:kivy 1.4.2
 #:import state_cols main.state_cols
+#:import font_awesome_path main.font_awesome_path
+#:import font_icons main.font_icons
+
+[IconButton@Button]:
+    font_size: 10
+    size_hint_x: 0.5 if 'text' in ctx else None
+    width: 100 if 'text' in ctx else 20
+    border: 0, 0, 0, 0
+    background_color: 0, 0, 0, 0
+    font_name: font_awesome_path
+    color: 1, 1, 1, 1
+    markup: True
+    text: '%s [font=DroidSans]%s[/font]' % (ctx.icon, ctx.text) if 'text' in ctx else ctx.icon
 
 Controller:
     downloads: downloads
@@ -14,14 +27,6 @@ Controller:
         padding: 0
         spacing: 5
 
-[IconButton@Button]:
-    font_size: 10
-    size_hint_x: None
-    width: 16
-    border: 0, 0, 0, 0
-    background_color: 0, 0, 0, 0.1
-    font_name: 'fontawesome-webfont.ttf'
-
 <DownloadRow>:
     id: download
     orientation: 'horizontal'
@@ -34,6 +39,7 @@ Controller:
     ratio: 0.0
 
     browse: btn_browse
+    play: btn_play
 
     canvas:
         Color:
@@ -52,15 +58,10 @@ Controller:
         font_size: 10
         text: download.name
 
-    #IconButton:
-    #    text: u'\uf07c'
-
-    Button:
+    IconButton:
         id: btn_browse
-        text: 'Browse'
-        font_size: 8
-        opacity: 0.5
-        size_hint_x: None
-        width: 45
-        border: 0, 0, 0, 0
-        background_color: 0.5, 0.5, 0.5, 0.5
+        icon: font_icons['folder-open']
+
+    IconButton:
+        id: btn_play
+        icon: font_icons['play']

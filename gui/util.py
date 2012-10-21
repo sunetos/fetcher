@@ -44,3 +44,10 @@ def browse_path(path):
     subprocess.call(['open', '-R', path])
   elif sys.platform == 'win32':
     subprocess.call(['explorer', path])
+
+def open_path(path):
+  """Open a file in the default platform-specific handler."""
+  if sys.platform == 'darwin':
+    subprocess.call(['open', path])
+  elif sys.platform == 'win32':
+    subprocess.call(['start', path])

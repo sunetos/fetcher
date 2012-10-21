@@ -11,6 +11,7 @@ import kivy; kivy.require('1.4.2')
 
 from collections import namedtuple
 from functools import partial
+import os
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -26,11 +27,13 @@ import gevent
 from setproctitle import setproctitle
 
 import fetcher
-from gui.util import browse_path
+from gui.util import browse_path, open_path
+from gui.font_awesome_to_png import icons as font_icons
 
 
 ColorPair = namedtuple('ColorPair', ('bg', 'fg'))
 
+font_awesome_path = os.path.abspath('./gui/data/fontawesome-webfont.ttf')
 state_cols  = {
     'pending': ColorPair((0, 0, 0.5), (0, 0, 0.5)),
     'moving': ColorPair((0, 0, 0.5), (0, 0, 0.5)),
@@ -70,8 +73,8 @@ if __name__ == '__main__':
     downloads[download.id] = download, row
     Config.set('graphics', 'height', str(30 + row.height*len(downloads)))
 
-    on_press = lambda wgt: browse_path(download.path)
-    row.browse.bind(on_press=on_press)
+    row.browse.bind(on_press=lambda wgt: browse_path(download.path))
+    row.play.bind(on_press=lambda wgt: open_path(download.path))
 
   def status(download, status):
     download, row = downloads[download.id]
