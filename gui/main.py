@@ -26,7 +26,7 @@ import gevent
 from setproctitle import setproctitle
 
 import fetcher
-import gui.util
+from gui.util import browse_path
 
 
 ColorPair = namedtuple('ColorPair', ('bg', 'fg'))
@@ -44,7 +44,8 @@ class Controller(FloatLayout):
   downloads = ObjectProperty()
 
 
-class ControllerApp(App): pass
+class ControllerApp(App):
+  title = 'Fetcher'
 
 
 class DownloadRow(BoxLayout):
@@ -68,6 +69,9 @@ if __name__ == '__main__':
     app.root.downloads.add_widget(row)
     downloads[download.id] = download, row
     Config.set('graphics', 'height', str(30 + row.height*len(downloads)))
+
+    on_press = lambda wgt: browse_path(download.path)
+    row.browse.bind(on_press=on_press)
 
   def status(download, status):
     download, row = downloads[download.id]

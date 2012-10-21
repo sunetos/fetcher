@@ -6,6 +6,8 @@
 __author__ = 'adam@adamia.com (Adam R. Smith)'
 
 import functools
+import subprocess
+import sys
 
 from kivy.uix.widget import Widget
 
@@ -35,3 +37,10 @@ def add_ids_to_widgets():
 
   Widget.add_widget = add_widget
   Widget.remove_widget = remove_widget
+
+def browse_path(path):
+  """Open a platform-specific file browser to the given path."""
+  if sys.platform == 'darwin':
+    subprocess.call(['open', '-R', path])
+  elif sys.platform == 'win32':
+    subprocess.call(['explorer', path])
