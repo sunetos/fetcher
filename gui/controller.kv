@@ -14,6 +14,14 @@ Controller:
         padding: 0
         spacing: 5
 
+[IconButton@Button]:
+    font_size: 10
+    size_hint_x: None
+    width: 16
+    border: 0, 0, 0, 0
+    background_color: 0, 0, 0, 0.1
+    font_name: 'fontawesome-webfont.ttf'
+
 <DownloadRow>:
     id: download
     orientation: 'horizontal'
@@ -43,6 +51,9 @@ Controller:
         id: lbl_name
         font_size: 10
         text: download.name
+
+    #IconButton:
+    #    text: u'\uf07c'
 
     Button:
         id: btn_browse
