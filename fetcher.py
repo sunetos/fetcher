@@ -9,7 +9,7 @@ Supports multiple parallel downloads as well as resuming broken downloads.
 
 __author__ = 'adam@adamia.com (Adam R. Smith)'
 
-from gevent import monkey; monkey.patch_all()
+from gevent import monkey; __name__ == '__main__' and monkey.patch_all()
 
 from contextlib import contextmanager
 import logging as log

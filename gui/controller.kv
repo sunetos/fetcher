@@ -1,0 +1,42 @@
+#:kivy 1.4.2
+#:import state_cols main.state_cols
+
+<Controller>:
+    downloads: downloads
+
+    canvas:
+        Color:
+            rgba: (0, 0, 0)
+
+    StackLayout:
+        id: downloads
+        orientation: 'lr-tb'
+        padding: 0
+        spacing: 5
+
+<Download>:
+    id: download
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: 20
+
+    name: '(file name here)'
+    state: 'pending'
+    ratio: 0.0
+
+    canvas:
+        Color:
+            hsv: state_cols[download.state or 'pending'].bg
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            hsv: state_cols[download.state or 'pending'].fg
+        Rectangle:
+            pos: self.pos
+            size: self.size[0]*min(self.ratio, 1.0), self.size[1]
+
+    Label:
+        id: lbl_name
+        font_size: 10
+        text: download.name
