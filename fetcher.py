@@ -11,7 +11,9 @@ __author__ = 'adam@adamia.com (Adam R. Smith)'
 
 from gevent import monkey; __name__ == '__main__' and monkey.patch_all()
 
+from collections import namedtuple
 from contextlib import contextmanager
+import hashlib
 import logging as log
 import os
 import re
@@ -23,16 +25,22 @@ import putio
 import requests
 import yaml
 
+from async import interval_block
+
+
 class AttrDict(dict):
   """The most minimal possible implementation of a nested dot-notation dict."""
   def __getattr__(self, name):
     return AttrDict(self[name]) if isinstance(self[name], dict) else self[name]
+  def __setattr__(self, name, val):
+    self[name] = AttrDict(val) if isinstance(val, dict) else val
 
 CFG = AttrDict(yaml.load(open('cfg.yml', 'r')))
 
 log.root.setLevel(CFG.loglevel)
 _word, _type = CFG.match.word, CFG.match.type
-show_pattern = r'^(%s+)[.][Ss](\d{2})[Ee](\d{2})(%s+)[.](%s)$' % (_word, _word, _type)
+show_pattern = r'^(%s+)[.][Ss](\d{2})[Ee](\d{2})(%s+)[.](%s)$' % (
+    _word, _word, _type)
 show_re = re.compile(show_pattern)
 range_re = re.compile(r'bytes (\d+)-\d+/\d+')
 
@@ -40,6 +48,16 @@ api = putio.Api(CFG.putio.api_key, CFG.putio.api_secret)
 down_path = os.path.expanduser(CFG.download.local)
 down_put_path = CFG.download.putio
 down_put_dir = None
+noop = lambda *args, **kwargs: None
+
+# Patch these in to receive callbacks on file download events.
+events = AttrDict({
+    'init': noop,
+    'status': noop,
+    'progress': noop,
+})
+
+Download = namedtuple('Download', ('id', 'label', 'url', 'path', 'it'))
 
 def episode_sort_key(it):
   """Extract season and episode from show titles for numeric sorting."""
@@ -62,7 +80,7 @@ def get_all_videos(parent=0):
 
   return videos
 
-def fetch_to_file(url, path, size=None):
+def fetch_to_file(url, path, size=None, download=None):
   """Do the low-level transfer from a url to a file, supporting resume."""
   chunk_size = CFG.io.chunk
 
@@ -94,7 +112,13 @@ def fetch_to_file(url, path, size=None):
         start = min(start, server_start)  # Avoid seeking past end of file
 
     with open(path, 'ab') as dl_file:
-      shutil.copyfileobj(response.raw, dl_file, chunk_size)
+      def progress():
+        #cursize = os.path.getsize(path)
+        cursize = dl_file.tell()
+        (download and events.progress)(download, cursize, size)
+
+      with interval_block(progress, 0.25):
+        shutil.copyfileobj(response.raw, dl_file, chunk_size)
 
   except requests.exceptions.RequestException as re:
     log.error('Error downloading "%s": %s.', path, re)
@@ -102,8 +126,9 @@ def fetch_to_file(url, path, size=None):
 
   return True
 
-def fetch(label, url, path, it):
+def fetch(download):
   """Manage the download from put.io, then move to downloaded folder."""
+  file_id, label, url, path, it = download
   log.info('Downloading %s from "%s" to "%s".', label, url, path)
 
   file_dir, file_name = os.path.split(path)
@@ -111,19 +136,27 @@ def fetch(label, url, path, it):
     log.info('Download dir "%s" not found, creating.', file_dir)
     os.makedirs(file_dir)
 
+  (download and events.init)(download)
+
   max_tries = CFG.io.retry.count
   for tries in xrange(1, max_tries + 1):
     log.info('Download attempt #%d of "%s".', tries, url)
-    if fetch_to_file(url, path, int(it.size)):
+    (download and events.status)(download, 'downloading')
+
+    if fetch_to_file(url, path, int(it.size), download):
       break
+    (download and events.status)(download, 'pending')
     time.sleep(CFG.io.retry.delay)
 
   if tries == max_tries:
     log.info('Completely failed to download "%s".', file_name)
+    (download and events.status)(download, 'failed')
     return False
 
+  (download and events.status)(download, 'moving')
   it.move_item(down_put_dir.id)
   log.info('Successfully downloaded "%s".', file_name)
+  (download and events.status)(download, 'complete')
   return True
 
 def fetch_new():
@@ -183,12 +216,14 @@ def fetch_new():
       log.error('Empty download url for %s, put.io API issue.', label)
       continue
 
-    g = pool.spawn(fetch, label, it.download_url, file_path, it)
+    file_id = hashlib.md5(it.download_url)
+    download = Download(file_id, label, it.download_url, file_path, it)
+    g = pool.spawn(fetch, download)
 
   pool.join()
   return len(items)
 
-if __name__ == '__main__':
+def main():
   minutes = CFG.poll/60
 
   while True:
@@ -204,3 +239,7 @@ if __name__ == '__main__':
       log.info('put.io reported an error, waiting %d minutes: %s', minutes, pe)
 
     time.sleep(CFG.poll)
+
+
+if __name__ == '__main__':
+  main()

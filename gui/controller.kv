@@ -1,7 +1,7 @@
 #:kivy 1.4.2
 #:import state_cols main.state_cols
 
-<Controller>:
+Controller:
     downloads: downloads
 
     canvas:
@@ -14,7 +14,7 @@
         padding: 0
         spacing: 5
 
-<Download>:
+<DownloadRow>:
     id: download
     orientation: 'horizontal'
     size_hint_y: None
@@ -22,6 +22,7 @@
 
     name: '(file name here)'
     state: 'pending'
+    status: 'waiting...'
     ratio: 0.0
 
     canvas:

@@ -1,6 +1,7 @@
 DESCRIPTION
 
 Fetcher polls your put.io account and automatically downloads new videos.
+It has both a command-line and GUI version.
 
 If the video is part of a tv show, it will be automatically organized into
 folders by show and season.

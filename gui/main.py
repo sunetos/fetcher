@@ -17,21 +17,26 @@ from kivy.clock import Clock
 from kivy.config import Config
 from kivy.interactive import InteractiveLauncher
 from kivy.lang import Builder
+from kivy.logger import Logger as log
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty
 
+import gevent
 from setproctitle import setproctitle
 
-import util
+import fetcher
+import gui.util
 
 
-ColorPair = namedtuple('ColorSet', ('bg', 'fg'))
+ColorPair = namedtuple('ColorPair', ('bg', 'fg'))
 
 state_cols  = {
     'pending': ColorPair((0, 0, 0.5), (0, 0, 0.5)),
+    'moving': ColorPair((0, 0, 0.5), (0, 0, 0.5)),
     'downloading': ColorPair((0.15, 0.5, 0.4), (0.15, 0.5, 0.6)),
-    'finished': ColorPair((0.33, 1, 0.4), (0.33, 1, 0.4)),
+    'complete': ColorPair((0.33, 1, 0.4), (0.33, 1, 0.4)),
+    'failed': ColorPair((0, 1, 0.5), (0, 1, 0.7)),
 }
 
 
@@ -39,12 +44,10 @@ class Controller(FloatLayout):
   downloads = ObjectProperty()
 
 
-class ControllerApp(App):
-  def build(self):
-    return Controller()
+class ControllerApp(App): pass
 
 
-class Download(BoxLayout):
+class DownloadRow(BoxLayout):
   name = StringProperty()
   state = StringProperty()
   ratio = NumericProperty()
@@ -54,28 +57,33 @@ if __name__ == '__main__':
   setproctitle('fetcher')
 
   Config.set('graphics', 'width', '300')
-  Config.set('graphics', 'height', '100')
+  Config.set('graphics', 'height', '30')
 
-  download = None
-  def init(dt):
-    global download
-    download = Download()
-    download.state = 'downloading'
-    app.root.downloads.add_widget(download)
+  downloads = {}
 
-  def my_callback(dt):
-    if download.ratio < 1.0:
-      download.ratio += 0.1
-    else:
-      download.state = 'finished'
-      Clock.schedule_once(download_finished, 0.5)
+  def init(download):
+    row = DownloadRow()
+    row.state = 'pending'
+    row.name = download.label
+    app.root.downloads.add_widget(row)
+    downloads[download.id] = download, row
+    Config.set('graphics', 'height', str(30 + row.height*len(downloads)))
 
-  def download_finished(dt):
-    download.parent.remove_widget(download)
+  def status(download, status):
+    download, row = downloads[download.id]
+    row.state = status
 
-  Clock.schedule_once(init)
-  Clock.schedule_interval(my_callback, 1/2.)
+  def progress(download, size, max_size):
+    download, row = downloads[download.id]
+    row.ratio = float(size)/max_size
 
-  app = ControllerApp()
+  fetcher.events.init = init
+  fetcher.events.status = status
+  fetcher.events.progress = progress
+  fetcher.log = log
+
   #app = InteractiveLauncher(ControllerApp())
+  #app.run()
+  app = ControllerApp()
+  gevent.spawn(fetcher.main)
   app.run()
