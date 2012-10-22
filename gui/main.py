@@ -16,7 +16,6 @@ import os
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.config import Config
-from kivy.interactive import InteractiveLauncher
 from kivy.lang import Builder
 from kivy.logger import Logger as log
 from kivy.uix.boxlayout import BoxLayout
@@ -51,7 +50,7 @@ class ControllerApp(App):
   title = 'Fetcher'
 
   def build(self):
-    # Can't import Window at the top or it will open with default config.
+    # Can't import Window at the top or it will open early with default config.
     from kivy.core.window import Window
     Window.bind(on_key_down=self.on_key_down)
 
@@ -100,8 +99,6 @@ if __name__ == '__main__':
   fetcher.events.progress = progress
   fetcher.log = log
 
-  #app = InteractiveLauncher(ControllerApp())
-  #app.run()
   app = ControllerApp()
   gevent.spawn(fetcher.main)
   app.run()
