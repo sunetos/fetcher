@@ -155,7 +155,7 @@ def fetch(download):
   (download and events.status)(download, 'moving')
   it.move_item(down_put_dir.id)
   log.info('Successfully downloaded "%s".', file_name)
-  (download and events.status)(download, 'complete')
+  (download and events.status)(download, 'completed')
   return True
 
 def fetch_new():
@@ -222,8 +222,49 @@ def fetch_new():
   pool.join()
   return len(items)
 
+
+def watch_transfers():
+  """Monitor current put.io transfers and broadcast update events."""
+  skip_statuses = ('Seeding', 'Completed')
+
+  known_transfers = {}
+  def get_download(transfer):
+    if transfer.id in known_transfers:
+      return known_transfers[transfer.id], False
+    if transfer.status in skip_statuses:
+      return None, False
+    download = Download(transfer.id, transfer.name, '', '', None)
+    known_transfers[transfer.id] = download
+    return download, True
+
+  while True:
+    try:
+      transfers = api.get_transfers()
+      for transfer in transfers:
+        download, new = get_download(transfer)
+        if download and transfer.status in skip_statuses:
+          (download and events.status)(download, 'remove')
+          del known_transfers[transfer.id]
+          continue
+
+        if not download: continue
+        if new: (download and events.init)(download)
+
+        status = str(transfer.status).lower()
+        if status == 'downloading': status = 'putio-downloading'
+        (download and events.status)(download, status)
+
+        if transfer.status == 'Downloading':
+          (download and events.progress)(download, float(transfer.percent_done),
+                                         100.0)
+
+    except putio.PutioError as pe:
+      pass
+
+    time.sleep(CFG.poll.transfers)
+
 def main():
-  minutes = CFG.poll/60
+  minutes = CFG.poll.downloads/60
 
   while True:
     try:
@@ -237,7 +278,7 @@ def main():
     except putio.PutioError as pe:
       log.info('put.io reported an error, waiting %d minutes: %s', minutes, pe)
 
-    time.sleep(CFG.poll)
+    time.sleep(CFG.poll.downloads)
 
 
 if __name__ == '__main__':

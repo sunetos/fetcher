@@ -32,31 +32,37 @@ Controller:
     orientation: 'horizontal'
     size_hint_y: None
     height: 20
+    spacing: 5
 
     name: '(file name here)'
     state: 'pending'
     status: 'waiting...'
     ratio: 0.0
-
-    browse: btn_browse
-    play: btn_play
+    path: ''
 
     canvas:
         Color:
-            hsv: state_cols[download.state or 'pending'].bg
+            hsv: state_cols.get(download.state, state_cols['pending']).bg
         Rectangle:
             pos: self.pos
             size: self.size
         Color:
-            hsv: state_cols[download.state or 'pending'].fg
+            hsv: state_cols.get(download.state, state_cols['pending']).fg
         Rectangle:
             pos: self.pos
             size: self.size[0]*min(self.ratio, 1.0), self.size[1]
 
     Label:
+        halign: 'left'
+        valign: 'middle'
         id: lbl_name
         font_size: 10
-        text: download.name
+        text: ' ' + download.name
+        text_size: self.size  # Required for halign to work correctly
+
+<LocalDownloadRow>:
+    browse: btn_browse
+    play: btn_play
 
     IconButton:
         id: btn_browse

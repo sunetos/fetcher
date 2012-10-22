@@ -36,8 +36,9 @@ font_awesome_path = os.path.abspath('./gui/data/fontawesome-webfont.ttf')
 state_cols  = {
     'pending': ColorPair((0, 0, 0.5), (0, 0, 0.5)),
     'moving': ColorPair((0, 0, 0.5), (0, 0, 0.5)),
-    'downloading': ColorPair((0.15, 0.5, 0.4), (0.15, 0.5, 0.6)),
-    'complete': ColorPair((0.33, 1, 0.4), (0.33, 1, 0.4)),
+    'downloading': ColorPair((0.2, 0.5, 0.4), (0.2, 0.5, 0.6)),
+    'putio-downloading': ColorPair((0.15, 0.2, 0.3), (0.15, 0.2, 0.5)),
+    'completed': ColorPair((0.33, 1, 0.4), (0.33, 1, 0.4)),
     'failed': ColorPair((0, 1, 0.5), (0, 1, 0.7)),
 }
 
@@ -66,29 +67,56 @@ class DownloadRow(BoxLayout):
   ratio = NumericProperty()
 
 
+class LocalDownloadRow(DownloadRow):
+  path = StringProperty()
+
+
 if __name__ == '__main__':
   setproctitle('fetcher')
 
   Config.set('graphics', 'width', '300')
-  Config.set('graphics', 'height', '30')
+  Config.set('graphics', 'height', '5')
+  Config.set('graphics', 'position', 'custom')
+  Config.set('graphics', 'top', '10000')
+  Config.set('graphics', 'left', '10000')
+  Config.set('graphics', 'maxfps', '30')
 
   downloads = {}
 
+  def autosize():
+    from kivy.core.window import Window
+    if app.root.downloads.children:
+      row_height = app.root.downloads.children[0].height
+      new_height = (row_height + app.root.downloads.spacing)*len(downloads)
+      Window.size = (300, new_height)
+    else:
+      Window.size = (300, 5)
+
   def init(download):
     if download.id in downloads: return
-    row = DownloadRow()
+    if download.path:
+      row = LocalDownloadRow()
+      row.browse.bind(on_press=lambda wgt: browse_path(download.path))
+      row.play.bind(on_press=lambda wgt: open_path(download.path))
+    else:
+      row = DownloadRow()
     row.state = 'pending'
     row.name = download.label
+    if len(row.name) >= 36:
+      row.name = row.name[:36] + u'\u2026'
+    row.path = download.path
     app.root.downloads.add_widget(row)
     downloads[download.id] = download, row
-    Config.set('graphics', 'height', str(30 + row.height*len(downloads)))
 
-    row.browse.bind(on_press=lambda wgt: browse_path(download.path))
-    row.play.bind(on_press=lambda wgt: open_path(download.path))
+    autosize()
 
   def status(download, status):
     download, row = downloads[download.id]
     row.state = status
+    if status == 'remove':
+      row.parent.remove_widget(row)
+      del downloads[download.id]
+      autosize()
 
   def progress(download, size, max_size):
     download, row = downloads[download.id]
@@ -101,4 +129,5 @@ if __name__ == '__main__':
 
   app = ControllerApp()
   gevent.spawn(fetcher.main)
+  gevent.spawn(fetcher.watch_transfers)
   app.run()

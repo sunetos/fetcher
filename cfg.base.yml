@@ -25,6 +25,9 @@ io:
   chunk: 65536
   fsync: 5  # Call fsync every 5 seconds
 
-poll: 300  # Check for new downloads every 5 minutes
+poll:
+  downloads: 300  # Check for new downloads every 5 minutes
+  transfers: 30  # Check for new transfers every 30 seconds
+
 loglevel: INFO
 user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_4) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4
