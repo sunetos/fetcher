@@ -27,7 +27,7 @@ import gevent
 from setproctitle import setproctitle
 
 import fetcher
-from gui.util import browse_path, open_path
+from gui.util import browse_path, open_path, is_quit_key
 from gui.font_awesome_to_png import icons as font_icons
 
 
@@ -50,6 +50,16 @@ class Controller(FloatLayout):
 class ControllerApp(App):
   title = 'Fetcher'
 
+  def build(self):
+    # Can't import Window at the top or it will open with default config.
+    from kivy.core.window import Window
+    Window.bind(on_key_down=self.on_key_down)
+
+  def on_key_down(self, src, key, scancode, char, mods):
+    from kivy.base import stopTouchApp
+    if is_quit_key(char, mods):
+      stopTouchApp()
+
 
 class DownloadRow(BoxLayout):
   name = StringProperty()
@@ -66,6 +76,7 @@ if __name__ == '__main__':
   downloads = {}
 
   def init(download):
+    if download.id in downloads: return
     row = DownloadRow()
     row.state = 'pending'
     row.name = download.label

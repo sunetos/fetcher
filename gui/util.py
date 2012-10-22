@@ -51,3 +51,8 @@ def open_path(path):
     subprocess.call(['open', path])
   elif sys.platform == 'win32':
     subprocess.call(['start', path])
+
+def is_quit_key(char, mods):
+  """See if this keypress is a quit command on the current OS."""
+  if sys.platform == 'darwin':
+    return char in ('w', 'q') and 'meta' in mods
