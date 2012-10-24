@@ -37,8 +37,8 @@ ColorPair = namedtuple('ColorPair', ('bg', 'fg'))
 
 font_awesome_path = os.path.abspath('./gui/data/fontawesome-webfont.ttf')
 state_cols  = {
-    'pending': ColorPair((0, 0, 0.5), (0, 0, 0.5)),
-    'moving': ColorPair((0, 0, 0.5), (0, 0, 0.5)),
+    'pending': ColorPair((0, 0, 0.4), (0, 0, 0.4)),
+    'moving': ColorPair((0, 0, 0.4), (0, 0, 0.4)),
     'downloading': ColorPair((0.2, 0.5, 0.4), (0.2, 0.5, 0.6)),
     'putio-downloading': ColorPair((0.15, 0.2, 0.3), (0.15, 0.2, 0.5)),
     'completed': ColorPair((0.33, 1, 0.4), (0.33, 1, 0.4)),
@@ -75,9 +75,9 @@ class ControllerApp(App):
     if downloads:
       row_height = downloads[0].height
       new_height = (row_height + self.root.downloads.spacing)*len(downloads)
-      self.resize(300, new_height)
+      self.resize(320, new_height)
     else:
-      self.resize(300, 5)
+      self.resize(320, 5)
 
   def build_config(self, config):
     self.settings = None
@@ -89,10 +89,13 @@ class ControllerApp(App):
       settings_data = yaml.load(settings_yaml)
     self.settings_json = json.dumps(settings_data)
 
-    self.apply_config()
-
-    if not (fetcher.CFG.putio.api_key and fetcher.CFG.putio.api_secret):
+    api_key = config.get('put.io', 'api_key')
+    api_secret = config.get('put.io', 'api_secret')
+    if not api_key and api_secret:
       Clock.schedule_once(lambda dt: self.show_settings(), 0)
+
+    Clock.schedule_once(lambda dt: self.apply_config(), 0)
+
 
   def apply_config(self):
     fetcher.CFG.putio = dict(self.config.items('put.io'))
@@ -129,7 +132,7 @@ if __name__ == '__main__':
   setproctitle('fetcher')
 
   Config.set('graphics', 'resizable', '0')
-  Config.set('graphics', 'width', '300')
+  Config.set('graphics', 'width', '320')
   Config.set('graphics', 'height', '5')
   Config.set('graphics', 'position', 'custom')
   Config.set('graphics', 'top', '10000')
@@ -144,6 +147,7 @@ if __name__ == '__main__':
       row = LocalDownloadRow()
       row.browse.bind(on_press=lambda wgt: browse_path(download.path))
       row.play.bind(on_press=lambda wgt: open_path(download.path))
+      row.close.bind(on_press=lambda wgt: remove_download(download))
     else:
       row = DownloadRow()
     row.state = 'pending'
@@ -153,16 +157,24 @@ if __name__ == '__main__':
     row.path = download.path
     app.root.downloads.add_widget(row)
     downloads[download.id] = download, row
+    Clock.schedule_once(lambda dt: remove_download(download), 60*60*24)
 
+    app.autosize()
+
+  def remove_download(download):
+    download, row = downloads[download.id]
+    if row.state != 'completed': return
+    row.parent.remove_widget(row)
+    del downloads[download.id]
     app.autosize()
 
   def status(download, status):
     download, row = downloads[download.id]
     row.state = status
     if status == 'remove':
-      row.parent.remove_widget(row)
-      del downloads[download.id]
-      app.autosize()
+      remove_download(download)
+    elif status == 'completed':
+      row.close.opacity = 1.0
 
   def progress(download, size, max_size):
     download, row = downloads[download.id]

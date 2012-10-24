@@ -61,8 +61,9 @@ events = AttrDict({
 Download = namedtuple('Download', ('id', 'label', 'url', 'path', 'it'))
 
 def load_api():
-  global api
+  global api, down_put_dir
   api = putio.Api(CFG.putio.api_key, CFG.putio.api_secret)
+  down_put_dir = None
 load_api()
 
 def episode_sort_key(it):
@@ -174,6 +175,7 @@ def fetch_new():
       log.info('%s folder already in put.io, reusing.', down_put_path)
     except putio.PutioError:
       down_put_dir = api.create_folder(down_put_path)
+      if not down_put_dir: return
       log.info('%s folder not found, created.', down_put_path)
 
   pool = gevent.pool.Pool(size=CFG.io.max)

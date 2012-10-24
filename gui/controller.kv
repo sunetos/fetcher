@@ -13,6 +13,7 @@
     color: 1, 1, 1, 1
     markup: True
     text: '%s [font=DroidSans]%s[/font]' % (ctx.icon, ctx.text) if 'text' in ctx else ctx.icon
+    opacity: ctx.get('opacity', 1.0)
 
 Controller:
     downloads: downloads
@@ -63,6 +64,7 @@ Controller:
 <LocalDownloadRow>:
     browse: btn_browse
     play: btn_play
+    close: btn_close
 
     IconButton:
         id: btn_browse
@@ -71,3 +73,8 @@ Controller:
     IconButton:
         id: btn_play
         icon: font_icons['play']
+
+    IconButton:
+        id: btn_close
+        icon: font_icons['remove']
+        opacity: 0.25
