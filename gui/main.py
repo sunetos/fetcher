@@ -27,7 +27,7 @@ from setproctitle import setproctitle
 
 import fetcher
 from gui.util import browse_path, open_path, is_quit_key
-from gui.font_awesome_to_png import icons as font_icons
+from gui.font_icons import icons as font_icons
 
 
 ColorPair = namedtuple('ColorPair', ('bg', 'fg'))
