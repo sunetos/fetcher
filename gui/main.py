@@ -177,6 +177,7 @@ if __name__ == '__main__':
       row.close.opacity = 1.0
 
   def progress(download, size, max_size):
+    if not download.id in downloads: return
     download, row = downloads[download.id]
     row.ratio = float(size)/max_size
 

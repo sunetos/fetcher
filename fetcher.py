@@ -35,6 +35,8 @@ class AttrDict(dict):
   def __setattr__(self, name, val):
     self[name] = AttrDict(val) if isinstance(val, dict) else val
 
+if not os.path.exists('cfg.yml'):
+  shutil.copyfile('cfg.base.yml', 'cfg.yml')
 CFG = AttrDict(yaml.load(open('cfg.yml', 'r')))
 
 log.root.setLevel(CFG.loglevel)
