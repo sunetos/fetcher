@@ -11,15 +11,18 @@ import kivy; kivy.require('1.4.2')
 
 from collections import namedtuple
 from functools import partial
+import json
 import os
+import yaml
 
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.config import Config
+from kivy.config import Config, ConfigParser
 from kivy.lang import Builder
 from kivy.logger import Logger as log
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.settings import Settings
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty
 
 import gevent
@@ -59,6 +62,57 @@ class ControllerApp(App):
     from kivy.base import stopTouchApp
     if is_quit_key(char, mods):
       stopTouchApp()
+    elif char == ',' and 'meta' in mods:
+      self.show_settings()
+
+  def resize(self, width, height):
+    from kivy.core.window import Window
+    Window.size = (width, height)
+
+  def autosize(self):
+    if self.settings: return
+    downloads = self.root.downloads.children
+    if downloads:
+      row_height = downloads[0].height
+      new_height = (row_height + self.root.downloads.spacing)*len(downloads)
+      self.resize(300, new_height)
+    else:
+      self.resize(300, 5)
+
+  def build_config(self, config):
+    self.settings = None
+    config.setdefaults('put.io', {
+        'api_key': '',
+        'api_secret': '',
+    })
+    with open('gui/settings.yml', 'r') as settings_yaml:
+      settings_data = yaml.load(settings_yaml)
+    self.settings_json = json.dumps(settings_data)
+
+    self.apply_config()
+
+    if not (fetcher.CFG.putio.api_key and fetcher.CFG.putio.api_secret):
+      Clock.schedule_once(lambda dt: self.show_settings(), 0)
+
+  def apply_config(self):
+    fetcher.CFG.putio = dict(self.config.items('put.io'))
+    fetcher.load_api()
+    fetcher.check_now.set()
+
+  def show_settings(self):
+    self.settings = Settings()
+    self.settings.add_json_panel('put.io', self.config, data=self.settings_json)
+    self.resize(640, 250)
+    self.settings.remove_widget(self.settings.menu)
+    self.root.add_widget(self.settings)
+
+    def on_close(wgt):
+      self.apply_config()
+      self.root.remove_widget(self.settings)
+      self.settings = None
+      self.autosize()
+
+    self.settings.bind(on_close=on_close)
 
 
 class DownloadRow(BoxLayout):
@@ -74,23 +128,15 @@ class LocalDownloadRow(DownloadRow):
 if __name__ == '__main__':
   setproctitle('fetcher')
 
+  Config.set('graphics', 'resizable', '0')
   Config.set('graphics', 'width', '300')
   Config.set('graphics', 'height', '5')
   Config.set('graphics', 'position', 'custom')
   Config.set('graphics', 'top', '10000')
   Config.set('graphics', 'left', '10000')
-  Config.set('graphics', 'maxfps', '30')
+  Config.set('graphics', 'maxfps', '20')
 
   downloads = {}
-
-  def autosize():
-    from kivy.core.window import Window
-    if app.root.downloads.children:
-      row_height = app.root.downloads.children[0].height
-      new_height = (row_height + app.root.downloads.spacing)*len(downloads)
-      Window.size = (300, new_height)
-    else:
-      Window.size = (300, 5)
 
   def init(download):
     if download.id in downloads: return
@@ -108,7 +154,7 @@ if __name__ == '__main__':
     app.root.downloads.add_widget(row)
     downloads[download.id] = download, row
 
-    autosize()
+    app.autosize()
 
   def status(download, status):
     download, row = downloads[download.id]
@@ -116,7 +162,7 @@ if __name__ == '__main__':
     if status == 'remove':
       row.parent.remove_widget(row)
       del downloads[download.id]
-      autosize()
+      app.autosize()
 
   def progress(download, size, max_size):
     download, row = downloads[download.id]

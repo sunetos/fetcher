@@ -1,0 +1,8 @@
+- type: string
+  title: API Key
+  key: api_key
+  section: put.io
+- type: string
+  title: API Secret
+  key: api_secret
+  section: put.io

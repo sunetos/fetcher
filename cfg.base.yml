@@ -2,8 +2,6 @@
 putio:
   api_key: username
   api_secret: secret
-  user: email
-  password: password
 
 watch:
   putio:  # List folders in put.io to watch for new videos.

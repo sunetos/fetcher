@@ -20,7 +20,7 @@ import re
 import shutil
 import time
 
-import gevent, gevent.pool
+import gevent, gevent.event, gevent.pool
 import putio
 import requests
 import yaml
@@ -44,7 +44,8 @@ show_pattern = r'^(%s+)[.][Ss](\d{2})[Ee](\d{2})(%s+)[.](%s)$' % (
 show_re = re.compile(show_pattern)
 range_re = re.compile(r'bytes (\d+)-\d+/\d+')
 
-api = putio.Api(CFG.putio.api_key, CFG.putio.api_secret)
+api = None
+check_now = gevent.event.Event()
 down_path = os.path.expanduser(CFG.download.local)
 down_put_path = CFG.download.putio
 down_put_dir = None
@@ -58,6 +59,11 @@ events = AttrDict({
 })
 
 Download = namedtuple('Download', ('id', 'label', 'url', 'path', 'it'))
+
+def load_api():
+  global api
+  api = putio.Api(CFG.putio.api_key, CFG.putio.api_secret)
+load_api()
 
 def episode_sort_key(it):
   """Extract season and episode from show titles for numeric sorting."""
@@ -93,7 +99,8 @@ def fetch_to_file(url, path, size=None, download=None):
     log.info('Found %s already downloaded, resuming.', putio.human_size(start))
 
   params = {
-      'auth': (CFG.putio.user, CFG.putio.password),
+      #'auth': (CFG.putio.user, CFG.putio.password),
+      'auth': (CFG.putio.api_key, CFG.putio.api_secret),
       'prefetch': False,
       'headers': {'Range': 'bytes=%d-' % start, 'User-Agent': CFG.user_agent},
   }
@@ -258,7 +265,7 @@ def watch_transfers():
           (download and events.progress)(download, float(transfer.percent_done),
                                          100.0)
 
-    except putio.PutioError as pe:
+    except (putio.PutioError, TypeError):
       pass
 
     time.sleep(CFG.poll.transfers)
@@ -268,7 +275,7 @@ def main():
 
   while True:
     try:
-      if fetch_new():
+      if (CFG.putio.api_key and CFG.putio.api_secret) and fetch_new():
         log.info('Fetched new episodes, waiting %d minutes.', minutes)
       else:
         log.info('No new episodes, waiting %d minutes.', minutes)
@@ -278,7 +285,8 @@ def main():
     except putio.PutioError as pe:
       log.info('put.io reported an error, waiting %d minutes: %s', minutes, pe)
 
-    time.sleep(CFG.poll.downloads)
+    check_now.wait(CFG.poll.downloads)
+    check_now.clear()
 
 
 if __name__ == '__main__':
