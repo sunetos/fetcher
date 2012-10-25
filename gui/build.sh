@@ -1,4 +1,8 @@
 #!/bin/bash
 
-python gui/extern/pyinstaller/pyinstaller.py --name Fetcher gui/main.py
-mv Fetcher.spec gui/fetcher.spec
+rm -rf gui/dist build/ gui/build/
+python gui/extern/pyinstaller/pyinstaller.py gui/fetcher.spec
+pushd gui/dist
+mv Fetcher.app/.Python Fetcher.app/Python
+hdiutil create Fetcher.dmg -srcfolder Fetcher.app -ov
+popd

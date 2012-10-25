@@ -5,6 +5,7 @@
 
 __author__ = 'adam@adamia.com (Adam R. Smith)'
 
+import gui.imports
 from gevent import monkey; __name__ == '__main__' and monkey.patch_all()
 
 import kivy; kivy.require('1.4.2')
