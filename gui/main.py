@@ -5,7 +5,7 @@
 
 __author__ = 'adam@adamia.com (Adam R. Smith)'
 
-import gui.imports
+import gui.imports_hack
 from gevent import monkey; __name__ == '__main__' and monkey.patch_all()
 
 import kivy; kivy.require('1.4.2')
@@ -31,21 +31,8 @@ from setproctitle import setproctitle
 
 from async import set_interval
 import fetcher
+import gui.kv
 from gui.util import browse_path, get_free_space, open_path, is_quit_key
-from gui.font_icons import icons as font_icons
-
-
-ColorPair = namedtuple('ColorPair', ('bg', 'fg'))
-
-font_awesome_path = os.path.abspath('./gui/data/fontawesome-webfont.ttf')
-state_cols  = {
-    'pending': ColorPair((0, 0, 0.4), (0, 0, 0.4)),
-    'moving': ColorPair((0, 0, 0.4), (0, 0, 0.4)),
-    'downloading': ColorPair((0.2, 0.5, 0.4), (0.2, 0.5, 0.6)),
-    'putio-downloading': ColorPair((0.15, 0.2, 0.3), (0.15, 0.2, 0.5)),
-    'completed': ColorPair((0.33, 1, 0.4), (0.33, 1, 0.4)),
-    'failed': ColorPair((0, 1, 0.5), (0, 1, 0.7)),
-}
 
 
 class Controller(FloatLayout):
@@ -56,6 +43,7 @@ class Controller(FloatLayout):
 
 class ControllerApp(App):
   title = 'Fetcher'
+  directory = 'gui'
 
   def build(self):
     # Can't import Window at the top or it will open early with default config.

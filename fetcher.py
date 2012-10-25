@@ -73,8 +73,11 @@ Download = namedtuple('Download', ('id', 'label', 'url', 'path', 'it'))
 
 def load_api():
   global api, down_put_dir
-  api = putio.Api(CFG.putio.api_key, CFG.putio.api_secret)
-  down_put_dir = None
+  try:
+    down_put_dir = None
+    api = putio.Api(CFG.putio.api_key, CFG.putio.api_secret)
+  except putio.PutioError:
+    api = None
 load_api()
 
 def episode_sort_key(it):
@@ -180,6 +183,7 @@ def fetch(download):
 def fetch_new():
   """Check for new video files in the put.io root folder and download."""
   global down_put_dir
+  if not api: return 0
   if not down_put_dir:
     try:
       down_put_dir = api.get_items(type='folder', name=down_put_path)[0]
@@ -259,6 +263,7 @@ def watch_transfers():
 
   while True:
     try:
+      if not api: raise TypeError('Continue')
       transfers = api.get_transfers()
       for transfer in transfers:
         download, new = get_download(transfer)
