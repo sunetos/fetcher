@@ -41,7 +41,7 @@ CFG = AttrDict(yaml.load(open('cfg.yml', 'r')))
 
 log.root.setLevel(CFG.loglevel)
 _word, _type = CFG.match.word, CFG.match.type
-show_pattern = r'^(%s+)[.][Ss](\d{2})[Ee](\d{2})(%s+)[.](%s)$' % (
+show_pattern = r'^(%s+)[-_.][Ss]?(\d{1,2})[Eex](\d{1,2})(%s+)[.](%s)$' % (
     _word, _word, _type)
 show_re = re.compile(show_pattern)
 range_re = re.compile(r'bytes (\d+)-\d+/\d+')
@@ -290,8 +290,7 @@ def main():
     except putio.PutioError as pe:
       log.info('put.io reported an error, waiting %d minutes: %s', minutes, pe)
 
-    check_now.wait(CFG.poll.downloads)
-    check_now.clear()
+    check_now.wait(CFG.poll.downloads) and check_now.clear()
 
 
 if __name__ == '__main__':

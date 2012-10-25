@@ -6,3 +6,7 @@
   title: API Secret
   key: api_secret
   section: put.io
+- type: path
+  title: Download Path
+  key: download_path
+  section: put.io

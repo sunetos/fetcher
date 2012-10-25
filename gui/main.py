@@ -87,6 +87,7 @@ class ControllerApp(App):
     config.setdefaults('put.io', {
         'api_key': '',
         'api_secret': '',
+        'download_path': '~/Movies/TV Shows',
     })
     with open('gui/settings.yml', 'r') as settings_yaml:
       settings_data = yaml.load(settings_yaml)
@@ -101,7 +102,9 @@ class ControllerApp(App):
 
 
   def apply_config(self):
-    fetcher.CFG.putio = dict(self.config.items('put.io'))
+    fetcher.CFG.putio.api_key = self.config.get('put.io', 'api_key')
+    fetcher.CFG.putio.api_secret = self.config.get('put.io', 'api_secret')
+    fetcher.CFG.download.local = self.config.get('put.io', 'download_path')
     fetcher.load_api()
     fetcher.check_now.set()
 
