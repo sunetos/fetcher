@@ -51,6 +51,7 @@ check_now = gevent.event.Event()
 down_path = os.path.expanduser(CFG.download.local)
 down_put_path = CFG.download.putio
 down_put_dir = None
+human_size = putio.human_size
 noop = lambda *args, **kwargs: None
 
 # Patch these in to receive callbacks on file download events.
@@ -99,7 +100,7 @@ def fetch_to_file(url, path, size=None, download=None):
     if start == size:
       log.info('Already finished "%s"! Skipping.', path)
       return True
-    log.info('Found %s already downloaded, resuming.', putio.human_size(start))
+    log.info('Found %s already downloaded, resuming.', human_size(start))
 
   params = {
       #'auth': (CFG.putio.user, CFG.putio.password),

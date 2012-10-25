@@ -28,8 +28,9 @@ from kivy.properties import NumericProperty, ObjectProperty, StringProperty
 import gevent
 from setproctitle import setproctitle
 
+from async import set_interval
 import fetcher
-from gui.util import browse_path, open_path, is_quit_key
+from gui.util import browse_path, get_free_space, open_path, is_quit_key
 from gui.font_icons import icons as font_icons
 
 
@@ -46,8 +47,10 @@ state_cols  = {
 }
 
 
-class Controller(FloatLayout):
+class Controller(BoxLayout):
   downloads = ObjectProperty()
+  free_space_local = StringProperty()
+  free_space_remote = StringProperty()
 
 
 class ControllerApp(App):
@@ -74,10 +77,10 @@ class ControllerApp(App):
     downloads = self.root.downloads.children
     if downloads:
       row_height = downloads[0].height
-      new_height = (row_height + self.root.downloads.spacing)*len(downloads)
+      new_height = 15 + (row_height + self.root.downloads.spacing)*len(downloads)
       self.resize(320, new_height)
     else:
-      self.resize(320, 5)
+      self.resize(320, 20)
 
   def build_config(self, config):
     self.settings = None
@@ -133,7 +136,7 @@ if __name__ == '__main__':
 
   Config.set('graphics', 'resizable', '0')
   Config.set('graphics', 'width', '320')
-  Config.set('graphics', 'height', '5')
+  Config.set('graphics', 'height', '20')
   Config.set('graphics', 'position', 'custom')
   Config.set('graphics', 'top', '10000')
   Config.set('graphics', 'left', '10000')
@@ -181,6 +184,17 @@ if __name__ == '__main__':
     download, row = downloads[download.id]
     row.ratio = float(size)/max_size
 
+  def update_free_space():
+    local = get_free_space(fetcher.CFG.download.local)
+    app.root.free_space_local = fetcher.human_size(local)
+    try:
+      info = fetcher.api.get_user_info()
+      if info:
+        remote = info.disk_quota_available
+        app.root.free_space_remote = fetcher.human_size(remote)
+    except fetcher.putio.PutioError:
+      pass
+
   fetcher.events.init = init
   fetcher.events.status = status
   fetcher.events.progress = progress
@@ -189,4 +203,5 @@ if __name__ == '__main__':
   app = ControllerApp()
   gevent.spawn(fetcher.main)
   gevent.spawn(fetcher.watch_transfers)
+  set_interval(update_free_space, 15.0)
   app.run()
