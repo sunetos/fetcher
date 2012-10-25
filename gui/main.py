@@ -47,7 +47,7 @@ state_cols  = {
 }
 
 
-class Controller(BoxLayout):
+class Controller(FloatLayout):
   downloads = ObjectProperty()
   free_space_local = StringProperty()
   free_space_remote = StringProperty()
@@ -60,6 +60,13 @@ class ControllerApp(App):
     # Can't import Window at the top or it will open early with default config.
     from kivy.core.window import Window
     Window.bind(on_key_down=self.on_key_down)
+
+    api_key = self.config.get('put.io', 'api_key')
+    api_secret = self.config.get('put.io', 'api_secret')
+    if not api_key and api_secret:
+      Clock.schedule_once(lambda dt: self.show_settings(), 0)
+
+    Clock.schedule_once(lambda dt: self.apply_config(), 0)
 
   def on_key_down(self, src, key, scancode, char, mods):
     from kivy.base import stopTouchApp
@@ -92,13 +99,6 @@ class ControllerApp(App):
     with open('gui/settings.yml', 'r') as settings_yaml:
       settings_data = yaml.load(settings_yaml)
     self.settings_json = json.dumps(settings_data)
-
-    api_key = config.get('put.io', 'api_key')
-    api_secret = config.get('put.io', 'api_secret')
-    if not api_key and api_secret:
-      Clock.schedule_once(lambda dt: self.show_settings(), 0)
-
-    Clock.schedule_once(lambda dt: self.apply_config(), 0)
 
 
   def apply_config(self):
@@ -190,12 +190,13 @@ if __name__ == '__main__':
   def update_free_space():
     local = get_free_space(fetcher.CFG.download.local)
     app.root.free_space_local = fetcher.human_size(local)
+    if not fetcher.api: return
     try:
       info = fetcher.api.get_user_info()
       if info:
         remote = info.disk_quota_available
         app.root.free_space_remote = fetcher.human_size(remote)
-    except fetcher.putio.PutioError:
+    except (fetcher.putio.PutioError, TypeError):
       pass
 
   fetcher.events.init = init
@@ -204,7 +205,7 @@ if __name__ == '__main__':
   fetcher.log = log
 
   app = ControllerApp()
-  gevent.spawn(fetcher.main)
-  gevent.spawn(fetcher.watch_transfers)
+  gevent.spawn_later(1.0, fetcher.main)
+  gevent.spawn_later(1.0, fetcher.watch_transfers)
   set_interval(update_free_space, 15.0)
   app.run()

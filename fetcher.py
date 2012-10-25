@@ -29,11 +29,19 @@ from async import interval_block
 
 
 class AttrDict(dict):
-  """The most minimal possible implementation of a nested dot-notation dict."""
+  """A reliable nested dot-notation dict."""
   def __getattr__(self, name):
-    return AttrDict(self[name]) if isinstance(self[name], dict) else self[name]
+    if not name in self: raise AttributeError('Key %s not found' % name)
+    val = self[name]
+    if isinstance(val, dict) and not isinstance(val, AttrDict):
+      val = self[name] = AttrDict(val)
+    return val
   def __setattr__(self, name, val):
     self[name] = AttrDict(val) if isinstance(val, dict) else val
+  def __delattr__(self, name):
+    del self[name]
+  def copy(self):
+    return type(self)(self)
 
 if not os.path.exists('cfg.yml'):
   shutil.copyfile('cfg.base.yml', 'cfg.yml')
