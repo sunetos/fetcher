@@ -5,7 +5,6 @@
 
 __author__ = 'adam@adamia.com (Adam R. Smith)'
 
-import gui.imports_hack
 from gevent import monkey; __name__ == '__main__' and monkey.patch_all()
 
 import kivy; kivy.require('1.4.2')
@@ -52,7 +51,7 @@ class ControllerApp(App):
 
     api_key = self.config.get('put.io', 'api_key')
     api_secret = self.config.get('put.io', 'api_secret')
-    if not api_key and api_secret:
+    if not (api_key and api_secret):
       Clock.schedule_once(lambda dt: self.show_settings(), 0)
 
     Clock.schedule_once(lambda dt: self.apply_config(), 0)
@@ -122,8 +121,7 @@ class DownloadRow(BoxLayout):
 class LocalDownloadRow(DownloadRow):
   path = StringProperty()
 
-
-if __name__ == '__main__':
+def main():
   setproctitle('fetcher')
 
   Config.set('graphics', 'resizable', '0')
@@ -198,3 +196,6 @@ if __name__ == '__main__':
   gevent.spawn_later(1.0, fetcher.watch_transfers)
   set_interval(update_free_space, 15.0)
   app.run()
+
+if __name__ == '__main__':
+  main()

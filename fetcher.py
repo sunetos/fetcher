@@ -183,7 +183,9 @@ def fetch(download):
 def fetch_new():
   """Check for new video files in the put.io root folder and download."""
   global down_put_dir
-  if not api: return 0
+  if not api:
+    log.error('Failed to connect to put.io api.')
+    return 0
   if not down_put_dir:
     try:
       down_put_dir = api.get_items(type='folder', name=down_put_path)[0]
