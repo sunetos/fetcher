@@ -1,11 +1,11 @@
-Cython==0.17.1
+Cython==0.17.2
 Kivy==1.4.2-dev
 PIL==1.1.7
 PyYAML==3.10
 greenlet==0.4.0
 numpy==1.6.2
 pygame==1.9.2pre
-requests==0.14.1
+requests==0.14.2
 setproctitle==1.1.6
 wsgiref==0.1.2
-git+git://github.com/SiteSupport/gevent.git@1.0b4#egg=gevent
+git+git://github.com/SiteSupport/gevent.git@1.0rc1#egg=gevent
