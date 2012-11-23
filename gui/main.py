@@ -42,7 +42,7 @@ class Controller(FloatLayout):
 
 class ControllerApp(App):
   title = 'Fetcher'
-  directory = 'gui'
+  directory = './gui'
 
   def build(self):
     # Can't import Window at the top or it will open early with default config.
@@ -131,6 +131,8 @@ def main():
   Config.set('graphics', 'top', '10000')
   Config.set('graphics', 'left', '10000')
   Config.set('graphics', 'maxfps', '20')
+
+  Builder.load_file(os.path.abspath('./gui/controller.kv'))
 
   downloads = {}
 

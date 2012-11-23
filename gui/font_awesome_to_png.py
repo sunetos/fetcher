@@ -1,1 +1,0 @@
-extern/font-awesome-to-png/font-awesome-to-png.py

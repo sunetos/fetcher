@@ -1,9 +1,9 @@
 #!/bin/bash
 
-rm -rf gui/dist build/ gui/build/
-python gui/extern/pyinstaller/pyinstaller.py gui/fetcher.spec &&
-pushd gui/dist &&
-mv Fetcher.app/.Python Fetcher.app/Python &&
+rm -rf dist build
+python setup.py py2app --site-packages --packages=kivy,gui &&
+rm dist/Fetcher.app/Contents/Resources/gui/controller.ini
+pushd dist &&
 hdiutil create Fetcher.dmg -srcfolder Fetcher.app -ov &&
 popd &&
-mv gui/dist/Fetcher.dmg .
+mv dist/Fetcher.dmg .
