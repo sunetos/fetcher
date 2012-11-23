@@ -1,6 +1,0 @@
-[submodule "gui/extern/font-awesome-to-png"]
-	path = gui/extern/font-awesome-to-png
-	url = https://github.com/odyniec/font-awesome-to-png.git
-[submodule "gui/extern/pyinstaller"]
-	path = gui/extern/pyinstaller
-	url = https://github.com/pyinstaller/pyinstaller.git
