@@ -5,11 +5,12 @@ Usage:
     python setup.py py2app
 """
 
+import certifi
 from setuptools import setup
 
 APP = ['gui.py']
 DATA_FILES = [
-    ('', ['cfg.base.yml']),
+    ('', ['cfg.base.yml', certifi.where()]),
     ('gui', ['gui/controller.ini', 'gui/controller.kv', 'gui/settings.yml']),
     ('gui/data', ['gui/data/fontawesome-webfont.ttf']),
 ]

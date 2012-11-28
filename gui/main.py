@@ -122,6 +122,9 @@ class LocalDownloadRow(DownloadRow):
 def main():
   setproctitle('fetcher')
 
+  if os.path.exists('cacert.pem'):
+    os.environ['REQUESTS_CA_BUNDLE'] = os.path.abspath('cacert.pem')
+
   Config.set('graphics', 'resizable', '0')
   Config.set('graphics', 'width', '320')
   Config.set('graphics', 'height', '20')
