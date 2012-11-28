@@ -49,10 +49,10 @@ class ControllerApp(App):
     from kivy.core.window import Window
     Window.bind(on_key_down=self.on_key_down)
 
-    api_key = self.config.get('put.io', 'api_key')
-    api_secret = self.config.get('put.io', 'api_secret')
-    if not (api_key and api_secret):
+    access_token = self.config.get('put.io', 'access_token')
+    if not access_token:
       Clock.schedule_once(lambda dt: self.show_settings(), 0)
+      open_path('http://fetcher.codi.st/api/auth')
 
     Clock.schedule_once(lambda dt: self.apply_config(), 0)
 
@@ -80,8 +80,7 @@ class ControllerApp(App):
   def build_config(self, config):
     self.settings = None
     config.setdefaults('put.io', {
-        'api_key': '',
-        'api_secret': '',
+        'access_token': '',
         'download_path': '~/Movies/TV Shows',
     })
     with open('gui/settings.yml', 'r') as settings_yaml:
@@ -90,8 +89,7 @@ class ControllerApp(App):
 
 
   def apply_config(self):
-    fetcher.CFG.putio.api_key = self.config.get('put.io', 'api_key')
-    fetcher.CFG.putio.api_secret = self.config.get('put.io', 'api_secret')
+    fetcher.CFG.putio.access_token = self.config.get('put.io', 'access_token')
     fetcher.CFG.download.local = self.config.get('put.io', 'download_path')
     fetcher.load_api()
     fetcher.check_now.set()
@@ -132,8 +130,6 @@ def main():
   Config.set('graphics', 'left', '10000')
   Config.set('graphics', 'maxfps', '20')
 
-  Builder.load_file(os.path.abspath('./gui/controller.kv'))
-
   downloads = {}
 
   def init(download):
@@ -147,8 +143,8 @@ def main():
       row = DownloadRow()
     row.state = 'pending'
     row.name = download.label
-    if len(row.name) >= 36:
-      row.name = row.name[:36] + u'\u2026'
+    if len(row.name) >= 40:
+      row.name = row.name[:40] + u'\u2026'
     row.path = download.path
     app.root.downloads.add_widget(row)
     downloads[download.id] = download, row
@@ -169,7 +165,7 @@ def main():
     if status == 'remove':
       remove_download(download)
     elif status == 'completed':
-      row.close.opacity = 1.0
+      if hasattr(row, 'close'): row.close.opacity = 1.0
 
   def progress(download, size, max_size):
     if not download.id in downloads: return
@@ -181,9 +177,9 @@ def main():
     app.root.free_space_local = fetcher.human_size(local)
     if not fetcher.api: return
     try:
-      info = fetcher.api.get_user_info()
+      info = fetcher.api.Account.info()
       if info:
-        remote = info.disk_quota_available
+        remote = info.disk['avail']
         app.root.free_space_remote = fetcher.human_size(remote)
     except (fetcher.putio.PutioError, TypeError):
       pass

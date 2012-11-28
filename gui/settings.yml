@@ -1,10 +1,6 @@
 - type: string
-  title: API Key
-  key: api_key
-  section: put.io
-- type: string
-  title: API Secret
-  key: api_secret
+  title: Access Token
+  key: access_token
   section: put.io
 - type: path
   title: Download Path

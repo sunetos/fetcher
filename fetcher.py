@@ -77,8 +77,6 @@ def list_files_raw(parent):
   return api.File.list(parent_id=parent)
 
 def list_files(kind=None, parent=0, name=None):
-  log.info('Listing files of kind %s with parent %s and name %s.',
-            kind, parent, name)
   files = list_files_raw(parent)
   if kind == 'folder': kind = 'application/x-directory'
   return [f for f in files if
@@ -112,8 +110,7 @@ def fetch_to_file(url, path, size=None, download=None):
     log.info('Found %s already downloaded, resuming.', human_size(start))
 
   params = {
-      #'auth': (CFG.putio.user, CFG.putio.password),
-      'auth': (CFG.putio.api_key, CFG.putio.api_secret),
+      'params': {'access_token': CFG.putio.access_token},
       'prefetch': False,
       'headers': {'Range': 'bytes=%d-' % start, 'User-Agent': CFG.user_agent},
   }
@@ -189,7 +186,7 @@ def fetch_new():
       down_put_dir = list_files(kind='folder', name=down_put_path)[0]
       log.info('%s folder already in put.io, reusing.', down_put_path)
     except (putio.PutioError, IndexError):
-      down_put_dir = api.create_folder(down_put_path)
+      down_put_dir = api.File.create_folder(down_put_path)
       if not down_put_dir: return
       log.info('%s folder not found, created.', down_put_path)
 
@@ -255,7 +252,7 @@ def watch_transfers():
   def get_download(transfer):
     if transfer.id in known_transfers:
       return known_transfers[transfer.id], False
-    if transfer.status in skip_statuses:
+    if transfer.status_message in skip_statuses:
       return None, False
     download = Download(transfer.id, transfer.name, '', '', None)
     known_transfers[transfer.id] = download
@@ -267,7 +264,7 @@ def watch_transfers():
       transfers = api.Transfer.list()
       for transfer in transfers:
         download, new = get_download(transfer)
-        if download and transfer.status in skip_statuses:
+        if download and transfer.status_message in skip_statuses:
           (download and events.status)(download, 'remove')
           del known_transfers[transfer.id]
           continue
@@ -275,11 +272,11 @@ def watch_transfers():
         if not download: continue
         if new: (download and events.init)(download)
 
-        status = str(transfer.status).lower()
+        status = str(transfer.status_message).lower()
         if status == 'downloading': status = 'putio-downloading'
         (download and events.status)(download, status)
 
-        if transfer.status == 'Downloading':
+        if transfer.status_message == 'Downloading':
           (download and events.progress)(download, float(transfer.percent_done),
                                          100.0)
 
@@ -293,7 +290,7 @@ def main():
 
   while True:
     try:
-      if (CFG.putio.api_key and CFG.putio.api_secret) and fetch_new():
+      if (CFG.putio.access_token) and fetch_new():
         log.info('Fetched new episodes, waiting %d minutes.', minutes)
       else:
         log.info('No new episodes, waiting %d minutes.', minutes)

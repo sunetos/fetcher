@@ -80,6 +80,7 @@ class Client(object):
         attributes = {'client': self}
         self.File     = type('File',     (_File,),     attributes)
         self.Transfer = type('Transfer', (_Transfer,), attributes)
+        self.Account = type('Account', (_Account,), attributes)
     
     def request(self, path, method='GET', params=None, data=None, files=None, headers=None, raw=False, allow_redirects=True):
         '''
@@ -110,12 +111,10 @@ class Client(object):
         except ValueError:            
             raise PutioError('Server didn\'t send valid JSON:\n%s\n%s' % (r, r.content))
         
-        logger.info(params)
         if not 'status' in r or r['status'] == 'ERROR':
             raise PutioError(r.get('error_type') or r.get('error_description'))
         
         return r
-
 
 class _BaseResource(object):
     
@@ -160,6 +159,11 @@ class _File(_BaseResource):
         f.close()
         f = d['file']
         return cls(f)
+
+    @classmethod
+    def create_folder(cls, name, parent_id=0):
+        data = {'name': name, 'parent_id': parent_id}
+        return cls.client.request('/files/create-folder', 'POST', data=data)
     
     @property
     def files(self):
@@ -229,3 +233,16 @@ class _Transfer(_BaseResource):
         d = cls.client.request('/transfers/%i' % id, method='GET')
         t = d['transfer']
         return cls(t)
+
+
+class _Account(_BaseResource):
+
+    @classmethod
+    def info(cls):
+        d = cls.client.request('/account/info')
+        return cls(d['info'])
+
+    @classmethod
+    def settings(cls):
+        d = cls.client.request('/account/settings')
+        return cls(d['settings'])
