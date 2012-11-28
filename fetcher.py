@@ -173,7 +173,7 @@ def fetch(download):
     return False
 
   (download and events.status)(download, 'moving')
-  it.move_item(down_put_dir.id)
+  it.move(down_put_dir.id)
   log.info('Successfully downloaded "%s".', file_name)
   (download and events.status)(download, 'completed')
   return True
@@ -264,7 +264,7 @@ def watch_transfers():
   while True:
     try:
       if not api: raise TypeError('Continue')
-      transfers = api.get_transfers()
+      transfers = api.Transfer.list()
       for transfer in transfers:
         download, new = get_download(transfer)
         if download and transfer.status in skip_statuses:

@@ -110,8 +110,9 @@ class Client(object):
         except ValueError:            
             raise PutioError('Server didn\'t send valid JSON:\n%s\n%s' % (r, r.content))
         
-        if r['status'] == 'ERROR':
-            raise PutioError(r['error_type'])
+        logger.info(params)
+        if not 'status' in r or r['status'] == 'ERROR':
+            raise PutioError(r.get('error_type') or r.get('error_description'))
         
         return r
 
@@ -167,8 +168,10 @@ class _File(_BaseResource):
 
     @property
     def download_url(self):
-      r = self.client.request('/files/%s/download' % self.id, raw=True, allow_redirects=False)
-      return r.headers['Location']
+      if not hasattr(self, '_download_url'):
+        r = self.client.request('/files/%s/download' % self.id, raw=True, allow_redirects=False)
+        self._download_url = r.headers['Location']
+      return self._download_url
     
     def download(self, dest='.', range=None):
         if range:
@@ -187,8 +190,13 @@ class _File(_BaseResource):
                 f.write(data)
 
     def delete(self):
-        return self.client.request('/files/%s/delete' % self.id)
-    
+        data = {'file_ids': self.id}
+        return self.client.request('/files/delete', 'POST', data=data)
+
+    def move(self, parent_id):
+        data = {'file_ids': self.id, 'parent_id': parent_id}
+        return self.client.request('/files/move', 'POST', data=data)
+
     @classmethod
     def get(cls, id):
         d = cls.client.request('/files/%i' % id, method='GET')
