@@ -21,27 +21,13 @@ import shutil
 import time
 
 import gevent, gevent.event, gevent.pool
-import putio
+import putio2 as putio
 import requests
 import yaml
 
 from async import interval_block
+from util import *
 
-
-class AttrDict(dict):
-  """A reliable nested dot-notation dict."""
-  def __getattr__(self, name):
-    if not name in self: raise AttributeError('Key %s not found' % name)
-    val = self[name]
-    if isinstance(val, dict) and not isinstance(val, AttrDict):
-      val = self[name] = AttrDict(val)
-    return val
-  def __setattr__(self, name, val):
-    self[name] = AttrDict(val) if isinstance(val, dict) else val
-  def __delattr__(self, name):
-    del self[name]
-  def copy(self):
-    return type(self)(self)
 
 if not os.path.exists('cfg.yml'):
   shutil.copyfile('cfg.base.yml', 'cfg.yml')
@@ -59,7 +45,6 @@ check_now = gevent.event.Event()
 down_path = os.path.expanduser(CFG.download.local)
 down_put_path = CFG.download.putio
 down_put_dir = None
-human_size = putio.human_size
 noop = lambda *args, **kwargs: None
 
 # Patch these in to receive callbacks on file download events.
@@ -75,7 +60,7 @@ def load_api():
   global api, down_put_dir
   try:
     down_put_dir = None
-    api = putio.Api(CFG.putio.api_key, CFG.putio.api_secret)
+    api = putio.Client(CFG.putio.access_token)
   except putio.PutioError:
     api = None
 load_api()
@@ -87,15 +72,28 @@ def episode_sort_key(it):
   _, season, episode, _, _ = match.groups()
   return (int(season), int(episode))
 
+@memoize(15)
+def list_files_raw(parent):
+  return api.File.list(parent_id=parent)
+
+def list_files(kind=None, parent=0, name=None):
+  log.info('Listing files of kind %s with parent %s and name %s.',
+            kind, parent, name)
+  files = list_files_raw(parent)
+  if kind == 'folder': kind = 'application/x-directory'
+  return [f for f in files if
+          (not kind or f.content_type.startswith(kind)) and
+          (not name or f.name == name)]
+
 def get_all_videos(parent=0):
   """Put.io's api is a bit broken, so manually find all videos recursively."""
   videos = []
   try:
-    videos.extend(api.get_items(type='movie', parent_id=parent))
+    videos.extend(list_files(kind='video', parent=parent))
   except putio.PutioError: pass
 
   try:
-    for subdir in api.get_items(type='folder', parent_id=parent):
+    for subdir in list_files(kind='folder', parent=parent):
       videos.extend(get_all_videos(parent=subdir.id))
   except putio.PutioError: pass
 
@@ -145,7 +143,7 @@ def fetch_to_file(url, path, size=None, download=None):
     log.error('Error downloading "%s": %s.', path, re)
     return False
 
-  return True
+  return (size and os.path.getsize(path) == size) or True
 
 def fetch(download):
   """Manage the download from put.io, then move to downloaded folder."""
@@ -188,9 +186,9 @@ def fetch_new():
     return 0
   if not down_put_dir:
     try:
-      down_put_dir = api.get_items(type='folder', name=down_put_path)[0]
+      down_put_dir = list_files(kind='folder', name=down_put_path)[0]
       log.info('%s folder already in put.io, reusing.', down_put_path)
-    except putio.PutioError:
+    except (putio.PutioError, IndexError):
       down_put_dir = api.create_folder(down_put_path)
       if not down_put_dir: return
       log.info('%s folder not found, created.', down_put_path)
@@ -200,24 +198,24 @@ def fetch_new():
 
   try:
     # Find videos sitting in the root folder, and in watched folders.
-    items = api.get_items(type='movie')
+    items = list_files(kind='video')
   except putio.PutioError:
     items = []
 
   for folder_name in CFG.watch.putio:
     try:
-      folder = api.get_items(type='folder', name=folder_name)[0]
+      folder = list_files(kind='folder', name=folder_name)[0]
       sub_items = get_all_videos(folder.id)
       if not sub_items:
         # Confirm that it's really empty.
         try:
-          all_sub_items = api.get_items(parent_id=folder.id)
+          all_sub_items = list_files(parent_id=folder.id)
         except putio.PutioError:
           log.info('Removing empty folder from watch folder: %s.', folder_name)
           #folder.delete_item()
 
       items.extend(sub_items)
-    except putio.PutioError:
+    except (putio.PutioError, IndexError):
       down_put_dir = api.create_folder(down_put_path)
       log.warning('%s watch folder not found.', folder_name)
 
