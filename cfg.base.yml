@@ -11,13 +11,14 @@ watch:
 download:
   local: ~/Movies/TV Shows
   putio: Downloaded  # Which put.io folder to move completed downloads into.
+  remux: true
 
 match:
   word: '[-_.a-zA-z0-9]'
   type: 'avi|mov|mkv|mp4'
 
 io:
-  max: 2
+  max: 1
   retry:
     count: 3
     delay: 5

@@ -15,6 +15,7 @@ ColorPair = namedtuple('ColorPair', ('bg', 'fg'))
 state_cols  = {
     'pending': ColorPair((0, 0, 0.4), (0, 0, 0.4)),
     'moving': ColorPair((0, 0, 0.4), (0, 0, 0.4)),
+    'converting': ColorPair((0.18, 1.0, 0.6), (0.18, 1.0, 0.6)),
     'downloading': ColorPair((0.2, 0.5, 0.4), (0.2, 0.5, 0.6)),
     'putio-downloading': ColorPair((0.15, 0.2, 0.3), (0.15, 0.2, 0.5)),
     'completed': ColorPair((0.33, 1, 0.4), (0.33, 1, 0.4)),

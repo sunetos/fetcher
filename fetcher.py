@@ -16,8 +16,11 @@ from contextlib import contextmanager
 import hashlib
 import logging as log
 import os
+from gevent.queue import JoinableQueue as Queue
 import re
 import shutil
+import stat
+import subprocess
 import time
 
 import gevent, gevent.event, gevent.pool
@@ -41,6 +44,8 @@ show_re = re.compile(show_pattern)
 range_re = re.compile(r'bytes (\d+)-\d+/\d+')
 
 api = None
+converter_path = 'bin/SublerCLI'
+convert_queue = Queue()
 check_now = gevent.event.Event()
 down_path = os.path.expanduser(CFG.download.local)
 down_put_path = CFG.download.putio
@@ -55,6 +60,9 @@ events = AttrDict({
 })
 
 Download = namedtuple('Download', ('id', 'label', 'url', 'path', 'it'))
+
+if not os.access(converter_path, os.X_OK):
+  os.chmod(converter_path, os.stat(converter_path).st_mode | stat.S_IEXEC)
 
 def load_api():
   global api, down_put_dir
@@ -71,6 +79,18 @@ def episode_sort_key(it):
   if not match: return it.name
   _, season, episode, _, _ = match.groups()
   return (int(season), int(episode))
+
+def convert_video(path, out='m4v'):
+  path_name, ext = os.path.splitext(path)
+  dest = '%s.%s' % (path_name, out)
+  subprocess.call([converter_path, '-chapterspreview', '-downmix', 'stereo',
+                   '-source', path, '-dest', dest])
+  convert_queue.task_done()
+
+def convert_worker():
+  while True:
+    path = convert_queue.get()
+    gevent.spawn(convert_video, path)
 
 @memoize(15)
 def list_files_raw(parent):
@@ -171,6 +191,8 @@ def fetch(download):
 
   (download and events.status)(download, 'moving')
   it.move(down_put_dir.id)
+  (download and events.status)(download, 'converting')
+  convert_queue.put(path)
   log.info('Successfully downloaded "%s".', file_name)
   (download and events.status)(download, 'completed')
   return True
@@ -206,7 +228,7 @@ def fetch_new():
       if not sub_items:
         # Confirm that it's really empty.
         try:
-          all_sub_items = list_files(parent_id=folder.id)
+          all_sub_items = list_files(parent=folder.id)
         except putio.PutioError:
           log.info('Removing empty folder from watch folder: %s.', folder_name)
           #folder.delete_item()
@@ -287,6 +309,7 @@ def watch_transfers():
 
 def main():
   minutes = CFG.poll.downloads/60
+  gevent.spawn(convert_worker)
 
   while True:
     try:
