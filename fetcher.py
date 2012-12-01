@@ -174,25 +174,28 @@ def fetch(download):
 
   (download and events.init)(download)
 
-  max_tries = CFG.io.retry.count
+  success, max_tries = False, CFG.io.retry.count
   for tries in xrange(1, max_tries + 1):
     log.info('Download attempt #%d of "%s".', tries, url)
     (download and events.status)(download, 'downloading')
 
     if fetch_to_file(url, path, int(it.size), download):
+      success = True
       break
+
     (download and events.status)(download, 'pending')
     time.sleep(CFG.io.retry.delay)
 
-  if tries == max_tries:
+  if not success:
     log.info('Completely failed to download "%s".', file_name)
     (download and events.status)(download, 'failed')
     return False
 
   (download and events.status)(download, 'moving')
   it.move(down_put_dir.id)
-  (download and events.status)(download, 'converting')
-  convert_queue.put(path)
+  if False and CFG.download.remux:
+    (download and events.status)(download, 'converting')
+    convert_queue.put(path)
   log.info('Successfully downloaded "%s".', file_name)
   (download and events.status)(download, 'completed')
   return True
