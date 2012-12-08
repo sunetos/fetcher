@@ -14,8 +14,8 @@ download:
   remux: false
 
 match:
-  word: '[-_.a-zA-z0-9]'
-  type: 'avi|mov|mkv|mp4'
+  word: '[-_.a-zA-z0-9& ]'
+  type: 'avi|m4v|mkv|mov|mp4'
 
 io:
   max: 2

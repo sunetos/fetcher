@@ -38,8 +38,8 @@ CFG = AttrDict(yaml.load(open('cfg.yml', 'r')))
 
 log.root.setLevel(CFG.loglevel)
 _word, _type = CFG.match.word, CFG.match.type
-show_pattern = r'^(%s+)[-_.][Ss]?(\d{1,2})[Eex](\d{1,2})(%s+)[.](%s)$' % (
-    _word, _word, _type)
+show_pattern = (r'^(%s+)[Ss]?(\d{1,2})[Eex](\d{1,2})(%s+)[.](%s)$'
+                % (_word, _word, _type))
 show_re = re.compile(show_pattern)
 range_re = re.compile(r'bytes (\d+)-\d+/\d+')
 
@@ -160,7 +160,7 @@ def fetch_to_file(url, path, size=None, download=None):
     log.error('Error downloading "%s": %s.', path, re)
     return False
 
-  return (size and os.path.getsize(path) == size) or True
+  return (os.path.getsize(path) == size) if size else True
 
 def fetch(download):
   """Manage the download from put.io, then move to downloaded folder."""
@@ -249,7 +249,7 @@ def fetch_new():
     match = show_re.match(it.name)
     if match:
       name, season, episode, _, _ = match.groups()
-      name = name.replace('.', ' ').replace('_', ' ').title()
+      name = name.replace('.', ' ').replace('_', ' ').strip(' _-.').title()
       file_dir = os.path.join(down_path, name, 'Season %s' % season)
       label = '%s Season %s Episode %s' % (name, season, episode)
     else:
@@ -297,7 +297,7 @@ def watch_transfers():
         if not download: continue
         if new: (download and events.init)(download)
 
-        status = str(transfer.status_message).lower()
+        status = transfer.status_message.lower()
         if status == 'downloading': status = 'putio-downloading'
         (download and events.status)(download, status)
 
