@@ -37,10 +37,11 @@ if not os.path.exists('cfg.yml'):
 CFG = AttrDict(yaml.load(open('cfg.yml', 'r')))
 
 log.root.setLevel(CFG.loglevel)
-_word, _type = CFG.match.word, CFG.match.type
-show_pattern = (r'^(%s+)[Ss]?(\d{1,2})[Eex](\d{1,2})(%s+)[.](%s)$'
-                % (_word, _word, _type))
-show_re = re.compile(show_pattern)
+episode_patterns = (
+    r'[Ss]?(\d{1,3})[.]?[Eex](\d{1,3})',
+    r' (\d{1,3})[x.](\d{1,3})',
+)
+episode_res = tuple(re.compile(p) for p in episode_patterns)
 range_re = re.compile(r'bytes (\d+)-\d+/\d+')
 
 api = None
@@ -73,12 +74,22 @@ def load_api():
     api = None
 load_api()
 
+def parse_episode(text):
+  for episode_re in episode_res:
+    match = episode_re.search(text)
+    if match:
+      season, episode = match.groups()
+      name = text[:match.start()]
+      name = name.replace('.', ' ').replace('_', ' ').strip(' _-.').title()
+      return name, int(season), int(episode)
+  return None
+
 def episode_sort_key(it):
   """Extract season and episode from show titles for numeric sorting."""
-  match = show_re.match(it.name)
-  if not match: return it.name
-  _, season, episode, _, _ = match.groups()
-  return (int(season), int(episode))
+  parsed = parse_episode(it.name)
+  if not parsed: return it.name
+  name, season, episode = parsed
+  return season, episode
 
 def convert_video(path, out='m4v'):
   path_name, ext = os.path.splitext(path)
@@ -133,6 +144,7 @@ def fetch_to_file(url, path, size=None, download=None):
       'params': {'access_token': CFG.putio.access_token},
       'prefetch': False,
       'headers': {'Range': 'bytes=%d-' % start, 'User-Agent': CFG.user_agent},
+      'verify': False,
   }
 
   try:
@@ -246,10 +258,10 @@ def fetch_new():
 
   for it in items:
     name = it.name
-    match = show_re.match(it.name)
-    if match:
-      name, season, episode, _, _ = match.groups()
-      name = name.replace('.', ' ').replace('_', ' ').strip(' _-.').title()
+    parsed = parse_episode(it.name)
+    if parsed:
+      name, season, episode = parsed
+      season, episode = '%.2d' % season, '%.2d' % episode
       file_dir = os.path.join(down_path, name, 'Season %s' % season)
       label = '%s Season %s Episode %s' % (name, season, episode)
     else:
