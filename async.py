@@ -15,10 +15,11 @@ import gevent
 def set_interval(func, delay, now=False, *args, **kwargs):
   """Similar to javascript's setInterval but for gevent, and in seconds."""
   def run():
-    if now: func(*args, **kwargs)
-    while True:
+    run_again = True
+    if now: run_again = func(*args, **kwargs)
+    while run_again is not False:
       time.sleep(delay)
-      func(*args, **kwargs)
+      run_again = func(*args, **kwargs)
   return gevent.spawn(run)
 
 @contextmanager
