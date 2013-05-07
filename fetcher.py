@@ -19,6 +19,7 @@ import logging as log
 import os
 from gevent.queue import JoinableQueue as Queue
 import re
+from setproctitle import setproctitle
 import shutil
 import stat
 import subprocess
@@ -169,8 +170,11 @@ def fetch_to_file(url, path, size=None, download=None):
 
     with open(path, 'ab') as dl_file:
       def progress():
-        cursize = os.path.getsize(path) if dl_file.closed else dl_file.tell()
-        (download and events.progress)(download, cursize, size)
+        try:
+          cursize = os.path.getsize(path) if dl_file.closed else dl_file.tell()
+          (download and events.progress)(download, cursize, size)
+        except OSError:
+          return False
 
       with interval_block(progress, 0.25):
         shutil.copyfileobj(response.raw, dl_file, chunk_size)
@@ -244,7 +248,7 @@ def fetch_new():
   try:
     # Find videos sitting in the root folder, and in watched folders.
     items = list_files(kind='video')
-  except putio.PutioError:
+  except (putio.PutioError, requests.exceptions.RequestException):
     items = []
 
   for folder_name in CFG.watch.putio:
@@ -255,14 +259,16 @@ def fetch_new():
         # Confirm that it's really empty.
         try:
           all_sub_items = list_files(parent=folder.id)
-        except putio.PutioError:
+        except (putio.PutioError, requests.exceptions.RequestException):
           log.info('Removing empty folder from watch folder: %s.', folder_name)
           #folder.delete_item()
 
       items.extend(sub_items)
     except (putio.PutioError, IndexError):
       down_put_dir = api.create_folder(down_put_path)
-      log.warning('%s watch folder not found.', folder_name)
+      log.warning('%s watch folder not found.', folder_name) 
+    except requests.exceptions.RequestException:
+      log.warning('Connection error to put.io.')
 
   # Sort by season and episode across all shows.
   items.sort(key=episode_sort_key)
@@ -334,6 +340,8 @@ def watch_transfers():
     time.sleep(CFG.poll.transfers)
 
 def main():
+  setproctitle('fetcher')
+
   minutes = CFG.poll.downloads/60
   gevent.spawn(convert_worker)
 
