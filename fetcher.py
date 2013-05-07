@@ -13,6 +13,7 @@ from gevent import monkey; __name__ == '__main__' and monkey.patch_all()
 
 from collections import namedtuple
 from contextlib import contextmanager
+from distutils.spawn import find_executable
 import hashlib
 import logging as log
 import os
@@ -21,6 +22,7 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 import time
 
 import gevent, gevent.event, gevent.pool
@@ -45,7 +47,7 @@ episode_res = tuple(re.compile(p) for p in episode_patterns)
 range_re = re.compile(r'bytes (\d+)-\d+/\d+')
 
 api = None
-converter_path = 'bin/SublerCLI'
+converter_path = find_executable('avconv')
 convert_queue = Queue()
 check_now = gevent.event.Event()
 down_path = os.path.expanduser(CFG.download.local)
@@ -63,7 +65,8 @@ events = AttrDict({
 Download = namedtuple('Download', ('id', 'label', 'url', 'path', 'it'))
 
 if not os.access(converter_path, os.X_OK):
-  os.chmod(converter_path, os.stat(converter_path).st_mode | stat.S_IEXEC)
+  #os.chmod(converter_path, os.stat(converter_path).st_mode | stat.S_IEXEC)
+  sys.exit('Cannot find avconv.')
 
 def load_api():
   global api, down_put_dir
@@ -94,8 +97,12 @@ def episode_sort_key(it):
 def convert_video(path, out='m4v'):
   path_name, ext = os.path.splitext(path)
   dest = '%s.%s' % (path_name, out)
-  subprocess.call([converter_path, '-chapterspreview', '-downmix', 'stereo',
-                   '-source', path, '-dest', dest])
+  params = ('-c:v copy -c:a aac -b:a 160k -aq 100 -ac 2 -sn -f mp4 '
+            '-map_chapters 0 -map_metadata 0 -strict experimental')
+  convert_cmd = [converter_path, '-y', '-i', path] + params.split() + [dest]
+  failed = subprocess.call(convert_cmd)
+  if not failed:
+    os.rename(path, path + '.remuxed')
   convert_queue.task_done()
 
 def convert_worker():
@@ -203,11 +210,15 @@ def fetch(download):
     (download and events.status)(download, 'failed')
     return False
 
-  (download and events.status)(download, 'moving')
-  it.move(down_put_dir.id)
-  if False and CFG.download.remux:
+  path_name, ext = os.path.splitext(path)
+  if CFG.download.remux and ext in ('.mkv',):
     (download and events.status)(download, 'converting')
     convert_queue.put(path)
+    if CFG.io.max == 1:
+      convert_queue.join()
+
+  (download and events.status)(download, 'moving')
+  it.move(down_put_dir.id)
   log.info('Successfully downloaded "%s".', file_name)
   (download and events.status)(download, 'completed')
   return True
