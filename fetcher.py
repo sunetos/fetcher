@@ -265,7 +265,7 @@ def fetch_new():
 
       items.extend(sub_items)
     except (putio.PutioError, IndexError):
-      down_put_dir = api.create_folder(down_put_path)
+      down_put_dir = api.File.create_folder(down_put_path)
       log.warning('%s watch folder not found.', folder_name) 
     except requests.exceptions.RequestException:
       log.warning('Connection error to put.io.')
