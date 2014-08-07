@@ -104,8 +104,7 @@ def convert_video(path, out='stereo.m4v'):
   convert_cmd = [converter_path, '-y', '-i', path] + params.split() + [dest]
   failed = subprocess.call(convert_cmd)
   if not failed:
-    orig_path = CFG.download.remux
-    os.rename(path, os.path.join(orig_path, path))
+    os.rename(path, os.path.join(CFG.download.remux, path))
   convert_queue.task_done()
 
 def convert(*args, **kwargs):
