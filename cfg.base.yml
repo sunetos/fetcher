@@ -9,9 +9,9 @@ watch:
   - To Download
 
 download:
-  local: ~/Movies/TV Shows
   putio: Downloaded  # Which put.io folder to move completed downloads into.
-  remux: false
+  local: ~/Movies/TV Shows
+  remux: ~/Movies/Originals
 
 match:
   word: '[-_.a-zA-z0-9& ]'

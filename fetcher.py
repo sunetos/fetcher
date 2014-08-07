@@ -52,7 +52,7 @@ converter_path = find_executable('avconv')
 convert_queue = Queue()
 check_now = gevent.event.Event()
 down_path = os.path.expanduser(CFG.download.local)
-down_put_path = CFG.download.putio
+down_put_path, orig_path = CFG.download.putio, CFG.download.remux
 down_put_dir = None
 noop = lambda *args, **kwargs: None
 
@@ -95,16 +95,23 @@ def episode_sort_key(it):
   name, season, episode = parsed
   return season, episode
 
-def convert_video(path, out='m4v'):
+def convert_video(path, out='stereo.m4v'):
   path_name, ext = os.path.splitext(path)
+  if ext == '.remuxed': path_name = path_name[:-4]
   dest = '%s.%s' % (path_name, out)
-  params = ('-c:v copy -c:a aac -b:a 160k -aq 100 -ac 2 -sn -f mp4 '
+  params = ('-c:v copy -c:a aac -b:a 160k -aq 100 -ac 2 -f mp4 '
             '-map_chapters 0 -map_metadata 0 -strict experimental')
   convert_cmd = [converter_path, '-y', '-i', path] + params.split() + [dest]
   failed = subprocess.call(convert_cmd)
   if not failed:
-    os.rename(path, path + '.remuxed')
+    orig_path = CFG.download.remux
+    os.rename(path, os.path.join(orig_path, path))
   convert_queue.task_done()
+
+def convert(*args, **kwargs):
+  convert_queue.put(*args, **kwargs)
+  if CFG.io.max == 1:
+    convert_queue.join()
 
 def convert_worker():
   while True:
@@ -217,9 +224,7 @@ def fetch(download):
   path_name, ext = os.path.splitext(path)
   if CFG.download.remux and ext in ('.mkv',):
     (download and events.status)(download, 'converting')
-    convert_queue.put(path)
-    if CFG.io.max == 1:
-      convert_queue.join()
+    convert(path)
 
   (download and events.status)(download, 'moving')
   it.move(down_put_dir.id)
