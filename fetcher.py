@@ -104,7 +104,13 @@ def convert_video(path, out='stereo.m4v'):
   convert_cmd = [converter_path, '-y', '-i', path] + params.split() + [dest]
   failed = subprocess.call(convert_cmd)
   if not failed:
-    os.rename(path, os.path.join(CFG.download.remux, path))
+    new_path = dest.replace(os.path.abspath(CFG.download.local),
+                            os.path.abspath(CFG.download.remux))
+    new_dir, new_name = os.path.split(new_path)
+    if not os.path.exists(new_dir):
+      log.info('Converted video dir "%s" not found, creating.', new_dir)
+      os.makedirs(new_dir)
+    os.rename(dest, new_path)
   convert_queue.task_done()
 
 def convert(*args, **kwargs):
