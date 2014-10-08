@@ -5,6 +5,9 @@
 
 __author__ = 'adam@adamia.com (Adam R. Smith)'
 
+from contextlib import contextmanager
+import subprocess
+import sys
 import time
 
 
@@ -84,3 +87,14 @@ class memoize(object):
     func.__doc__ = f.__doc__
 
     return func
+
+
+@contextmanager
+def caffeinate():
+  """Disable system idle/sleep during a job. Mac-only for now."""
+  if sys.platform.startswith('darwin'):
+    proc = subprocess.Popen(['caffeinate', '-ms'])
+    yield
+    proc.kill()
+  else:
+    yield

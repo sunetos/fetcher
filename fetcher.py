@@ -357,10 +357,11 @@ def main():
 
   while True:
     try:
-      if (CFG.putio.access_token) and fetch_new():
-        log.info('Fetched new episodes, waiting %d minutes.', minutes)
-      else:
-        log.info('No new episodes, waiting %d minutes.', minutes)
+      with caffeinate():
+        if (CFG.putio.access_token) and fetch_new():
+          log.info('Fetched new episodes, waiting %d minutes.', minutes)
+        else:
+          log.info('No new episodes, waiting %d minutes.', minutes)
     except KeyboardInterrupt:
       log.info('Caught ctrl-c, shutting down.')
       break
